@@ -40,6 +40,6 @@ candy:
 ```bash
 charly config qdrant
 charly start qdrant
-charly secrets get charly/secret QDRANT__SERVICE__API_KEY   # the generated key
+charly secrets get charly/api-key qdrant   # the generated admin key
 charly check run check-qdrant-pod                            # in the pod-qdrant repo
 ```

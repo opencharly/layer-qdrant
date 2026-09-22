@@ -36,10 +36,11 @@ qdrant:
             - name: QDRANT__SERVICE__API_KEY
               description: >-
                   Qdrant admin API key. Auto-generated 32-byte hex on first deploy
-                  and persisted; retrieve with `charly secrets get charly/secret
-                  QDRANT__SERVICE__API_KEY`. Override before first deploy with
-                  `charly secrets set charly/secret QDRANT__SERVICE__API_KEY <v>`
-                  or pass once via `charly config qdrant -e QDRANT__SERVICE__API_KEY=<v>`.
+                  and persisted. The store coordinates are service `charly/api-key`,
+                  key `qdrant` (the `key:` below): retrieve with
+                  `charly secrets get charly/api-key qdrant`; override before first
+                  deploy with `charly secrets set charly/api-key qdrant <v>`, or pass
+                  once via `charly config qdrant -e QDRANT__SERVICE__API_KEY=<v>`.
               key: charly/api-key/qdrant
         env_provide:
             QDRANT_URL: "http://{{.ContainerName}}:6333"
