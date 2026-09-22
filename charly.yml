@@ -1,0 +1,173 @@
+version: 2026.249.2125
+# layer-qdrant — the Qdrant vector-search service CANDY: the pinned upstream
+# release binary, a supervisord service on REST 6333 + gRPC 6334, persistent
+# storage under ~/.qdrant, and admin API-key auth resolved from the credential
+# store (never plaintext). The pod-qdrant repo owns the box image + the
+# check-qdrant-pod R10 bed that prove it; plugin-qdrant owns the `charly qdrant`
+# CLI + the `qdrant:` check verb.
+qdrant:
+    candy:
+        version: 2026.249.2125
+        description: |-
+            Qdrant vector-search server. Installs the pinned upstream static-musl
+            release binary at /usr/local/bin/qdrant and supervises it on REST 6333
+            + gRPC 6334 (supervisord priority 20) with persistent storage under
+            ~/.qdrant. Auth is the admin API key, resolved from the credential
+            store and injected as QDRANT__SERVICE__API_KEY — never a plaintext key
+            in the image or charly.yml. Everything else is configuration-by-
+            environment (QDRANT__* vars), so the candy ships NO static config file
+            (the spike-proven env-only startup: Qdrant boots with no config-path
+            when the QDRANT__* env is set). The static-musl build is deliberate:
+            it is the ONE asset Qdrant publishes for BOTH linux/amd64 and
+            linux/arm64 (`qdrant-<arch>-unknown-linux-musl.tar.gz`; there is no
+            aarch64 gnu build), so a single ${BUILD_ARCH} URL covers every
+            supported platform with zero libc coupling.
+        require:
+            - '@github.com/opencharly/layer-supervisord:v2026.240.0121'
+        var:
+            QDRANT_VERSION: v1.19.1
+        env:
+            QDRANT__STORAGE__STORAGE_PATH: "~/.qdrant/storage"
+            QDRANT__STORAGE__SNAPSHOTS_PATH: "~/.qdrant/snapshots"
+            QDRANT__SERVICE__HTTP_PORT: "6333"
+            QDRANT__SERVICE__GRPC_PORT: "6334"
+            QDRANT__TELEMETRY_DISABLED: "true"
+        secret_require:
+            - name: QDRANT__SERVICE__API_KEY
+              description: >-
+                  Qdrant admin API key. Auto-generated 32-byte hex on first deploy
+                  and persisted. The store coordinates are service `charly/api-key`,
+                  key `qdrant` (the `key:` below): retrieve with
+                  `charly secrets get charly/api-key qdrant`; override before first
+                  deploy with `charly secrets set charly/api-key qdrant <v>`, or pass
+                  once via `charly config qdrant -e QDRANT__SERVICE__API_KEY=<v>`.
+              key: charly/api-key/qdrant
+        env_provide:
+            QDRANT_URL: "http://{{.ContainerName}}:6333"
+        port:
+            - 6333
+            - 6334
+        volume:
+            - name: qdrant
+              path: "~/.qdrant"
+        service:
+            - name: qdrant
+              exec: /usr/local/bin/qdrant
+              restart: always
+              priority: 20
+              enable: true
+              scope: system
+        plan:
+            - run: install the pinned qdrant static-musl release binary
+              download: "https://github.com/qdrant/qdrant/releases/download/${QDRANT_VERSION}/qdrant-${BUILD_ARCH}-unknown-linux-musl.tar.gz"
+              extract: tar.gz
+              to: /usr/local/bin
+              extract_include:
+                - qdrant
+              run_as: root
+            - run: create the qdrant state directory
+              mkdir: "${HOME}/.qdrant"
+              run_as: "${USER}"
+            # --- ADE: deterministic build-context checks ---
+            - check: the qdrant binary is installed
+              id: qdrant-binary
+              file: /usr/local/bin/qdrant
+            - check: the qdrant binary reports its version
+              id: qdrant-version
+              command: /usr/local/bin/qdrant --version
+              stdout:
+                - contains: "1.19.1"
+            # --- live checks (deploy context; the check-qdrant-pod bed drives these) ---
+            - check: the qdrant REST API answers /readyz
+              id: qdrant-readyz
+              http:
+                http: "http://127.0.0.1:${HOST_PORT:6333}/readyz"
+                status: 200
+              context:
+                - runtime
+            - check: the qdrant REST API answers /healthz
+              id: qdrant-healthz
+              http:
+                http: "http://127.0.0.1:${HOST_PORT:6333}/healthz"
+                status: 200
+              context:
+                - runtime
+            - check: the qdrant service is running under the init system
+              id: qdrant-service-running
+              service:
+                service: qdrant
+                running: true
+              context:
+                - runtime
+            - check: an unauthenticated collections request is rejected
+              id: qdrant-auth-enforced
+              command: |
+                code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:6333/collections)
+                test "$code" = "401" || test "$code" = "403"
+              context:
+                - runtime
+            - check: an authenticated collections request succeeds
+              id: qdrant-auth-accepted
+              command: |
+                curl -fsS -H "api-key: $QDRANT__SERVICE__API_KEY" http://127.0.0.1:6333/collections
+              context:
+                - runtime
+            - agent-check: a collection and its vectors persist across a service restart on the qdrant volume
+qdrant-skill:
+    skill:
+        name: qdrant
+        family: qdrant
+        owner: layer-qdrant
+        description: |-
+            The Qdrant vector-search service candy — pinned static-musl release
+            binary, a supervisord service on REST 6333 + gRPC 6334, persistent
+            ~/.qdrant storage, and admin API-key auth from the credential store.
+            MUST be invoked before building, deploying, configuring, or
+            troubleshooting a qdrant box, or before authoring the pod-qdrant
+            image / plugin-qdrant CLI.
+        triggers:
+            - "qdrant server / vector search / the qdrant candy (`candy/qdrant`) / the qdrant pod / the `qdrant:` check verb / `charly qdrant` CLI / REST 6333 / gRPC 6334 / QDRANT__SERVICE__API_KEY"
+        content: |-
+            # qdrant
+
+            The Qdrant vector-search service candy (owned by the `layer-qdrant` repo).
+            It installs the pinned upstream release binary and supervises it; the
+            `pod-qdrant` repo owns the box image + `check-qdrant-pod` R10 bed, and
+            `plugin-qdrant` owns the `charly qdrant` CLI + `qdrant:` check verb.
+
+            ## Composition
+
+            ```
+            candy:
+              base: "quay.io/fedora/fedora:43"
+              distro: [fedora:43, fedora]        # REQUIRED for an external base
+              candy:
+                - '@github.com/opencharly/layer-qdrant:<ref>'
+                - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:<ref>'
+            ```
+
+            ## Ports, storage, auth
+
+            - **REST** `6333`, **gRPC** `6334` (the internal distributed p2p `6335`
+              is NOT published — single-node only).
+            - **Storage** `~/.qdrant` (volume `qdrant`); env-only config —
+              `QDRANT__STORAGE__STORAGE_PATH`, `QDRANT__STORAGE__SNAPSHOTS_PATH`,
+              `QDRANT__SERVICE__HTTP_PORT`, `QDRANT__SERVICE__GRPC_PORT`,
+              `QDRANT__TELEMETRY_DISABLED`.
+            - **Auth** is the admin API key, resolved from the credential store at
+              `charly/api-key/qdrant` and injected as `QDRANT__SERVICE__API_KEY`.
+              Auto-generated 32-byte hex on first deploy. `/healthz`, `/livez`,
+              `/readyz` are always unauthenticated; `/collections`, `/telemetry`,
+              `/metrics` require the key.
+
+            ## Service
+
+            `service: qdrant` runs `/usr/local/bin/qdrant` under supervisord at
+            priority 20, restart always. Probe it with `charly service status qdrant`
+            and `charly check live qdrant`.
+
+            ## Cross-References
+
+            - `/charly-qdrant:qdrant-cli` — the `charly qdrant` CLI + `qdrant:` check verb (plugin-qdrant).
+            - `/charly-image:layer` — candy authoring (`service:`, `port:`, `volume:`, `secret_require`).
+            - `/charly-image:image` — box composition.
