@@ -141,8 +141,8 @@ qdrant-skill:
               base: "quay.io/fedora/fedora:43"
               distro: [fedora:43, fedora]        # REQUIRED for an external base
               candy:
-                - '@github.com/opencharly/layer-qdrant:v2026.249.2125'
-                - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.249.2125'
+                - '@github.com/opencharly/layer-qdrant:<ref>'
+                - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:<ref>'
             ```
 
             ## Ports, storage, auth

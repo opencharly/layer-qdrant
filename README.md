@@ -20,8 +20,8 @@ candy:
   base: "quay.io/fedora/fedora:43"
   distro: [fedora:43, fedora]        # REQUIRED for an external base
   candy:
-    - '@github.com/opencharly/layer-qdrant:v2026.265.0000'
-    - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.265.0000'
+    - '@github.com/opencharly/layer-qdrant:<ref>'
+    - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:<ref>'
 ```
 
 - [`pod-qdrant`](https://github.com/opencharly/pod-qdrant) — the box image + the
