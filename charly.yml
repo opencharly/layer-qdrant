@@ -1,4 +1,3 @@
-version: 2026.249.2125
 # layer-qdrant — the Qdrant vector-search service CANDY: the pinned upstream
 # release binary, a supervisord service on REST 6333 + gRPC 6334, persistent
 # storage under ~/.qdrant, and admin API-key auth resolved from the credential
@@ -7,7 +6,6 @@ version: 2026.249.2125
 # CLI + the `qdrant:` check verb.
 qdrant:
     candy:
-        version: 2026.249.2125
         description: |-
             Qdrant vector-search server. Installs the pinned upstream static-musl
             release binary at /usr/local/bin/qdrant and supervises it on REST 6333
