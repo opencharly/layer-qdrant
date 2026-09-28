@@ -1,3 +1,4 @@
+version: 2026.249.2125
 # layer-qdrant — the Qdrant vector-search service CANDY: the pinned upstream
 # release binary, a supervisord service on REST 6333 + gRPC 6334, persistent
 # storage under ~/.qdrant, and admin API-key auth resolved from the credential
@@ -6,6 +7,7 @@
 # CLI + the `qdrant:` check verb.
 qdrant:
     candy:
+        version: 2026.249.2125
         description: |-
             Qdrant vector-search server. Installs the pinned upstream static-musl
             release binary at /usr/local/bin/qdrant and supervises it on REST 6333
@@ -33,7 +35,12 @@ qdrant:
         secret_require:
             - name: QDRANT__SERVICE__API_KEY
               description: >-
-                Qdrant admin API key. Auto-generated 32-byte hex on first deploy and persisted. The store coordinates are service `charly/api-key`, key `qdrant` (the `key:` below): retrieve with `charly secrets get charly/api-key qdrant`; override before first deploy with `charly secrets set charly/api-key qdrant <v>`, or pass once via `charly config qdrant -e QDRANT__SERVICE__API_KEY=<v>`.
+                  Qdrant admin API key. Auto-generated 32-byte hex on first deploy
+                  and persisted. The store coordinates are service `charly/api-key`,
+                  key `qdrant` (the `key:` below): retrieve with
+                  `charly secrets get charly/api-key qdrant`; override before first
+                  deploy with `charly secrets set charly/api-key qdrant <v>`, or pass
+                  once via `charly config qdrant -e QDRANT__SERVICE__API_KEY=<v>`.
               key: charly/api-key/qdrant
         env_provide:
             QDRANT_URL: "http://{{.ContainerName}}:6333"
