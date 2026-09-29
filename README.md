@@ -1,45 +1,58 @@
-# layer-qdrant
+# qdrant
 
-The Qdrant vector-search service candy of the
-[opencharly/charly](https://github.com/opencharly/charly) candy library, as a
-standalone kind-prefixed repo. The candy manifest lives at the repo root; the
-charly resolver fetches this repo at the pinned tag.
+The [Qdrant](https://qdrant.tech) vector-search server for OpenCharly images.
 
-Installs the pinned upstream Qdrant release binary (static-musl, the one asset
-Qdrant publishes for both `linux/amd64` and `linux/arm64`) and supervises it on
-REST `6333` + gRPC `6334` with persistent storage under `~/.qdrant`. Auth is the
-admin API key, resolved from the credential store at `charly/api-key/qdrant` and
-injected as `QDRANT__SERVICE__API_KEY` — never a plaintext key in the image or
-`charly.yml`. Configuration is entirely environment-driven (`QDRANT__*`), so the
-candy ships no static config file.
+The `qdrant` candy installs the pinned upstream static-musl release binary at
+`/usr/local/bin/qdrant` and supervises it on REST 6333 + gRPC 6334 with
+persistent storage under `~/.qdrant`. Auth is the admin API key, resolved from
+the credential store and injected as `QDRANT__SERVICE__API_KEY` — never a
+plaintext key in the image or `charly.yml`.
 
-Compose it into a box:
+## What it provides
+
+| Property | Value |
+|---|---|
+| Layer / candy | `qdrant` |
+| Binary | `/usr/local/bin/qdrant` |
+| Version | pinned `v1.19.1` (`QDRANT_VERSION` var) |
+| Ports | REST `6333`, gRPC `6334` |
+| Storage | `~/.qdrant` (volume `qdrant`) |
+| Service | `qdrant` (supervisord, priority 20, restart always) |
+| Auth | admin API key from the credential store (`charly/api-key/qdrant`) |
+| Requires | [`layer-supervisord`](https://github.com/opencharly/layer-supervisord) |
+
+## How to use it
+
+Compose the layer by pinning this repo in a box's `candy:` list:
 
 ```yaml
-candy:
-  base: "quay.io/fedora/fedora:43"
-  distro: [fedora:43, fedora]        # REQUIRED for an external base
+my-qdrant-pod:
   candy:
-    - '@github.com/opencharly/layer-qdrant:<ref>'
-    - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:<ref>'
+    base: "quay.io/fedora/fedora:43"
+    distro: [fedora:43, fedora]
+    candy:
+      - '@github.com/opencharly/layer-qdrant:v2026.265.2042'
+      - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.265.2042'
 ```
 
-- [`pod-qdrant`](https://github.com/opencharly/pod-qdrant) — the box image + the
-  `check-qdrant-pod` R10 bed that prove this candy.
-- [`plugin-qdrant`](https://github.com/opencharly/plugin-qdrant) — the
-  `charly qdrant` CLI + the `qdrant:` check verb that manage and probe it.
+The admin API key is auto-generated 32-byte hex on first deploy. Retrieve it
+with `charly secrets get charly/api-key qdrant`, or override it before first
+deploy with `charly secrets set charly/api-key qdrant <v>`. `/healthz`,
+`/livez`, and `/readyz` are always unauthenticated; `/collections`, `/telemetry`,
+and `/metrics` require the key.
 
-## Ports, endpoints, auth
+## Layout
 
-| Surface | Port | Notes |
-|---|---|---|
-| REST + Web UI | `6333` | `/healthz`, `/livez`, `/readyz` are unauthenticated; everything else needs the key |
-| gRPC | `6334` | the Go/Rust/Python clients connect here |
-| Distributed p2p | `6335` | NOT published — single-node only |
+- `charly.yml` — the `qdrant:` candy entity (the `require:`, `var:`, `env:`,
+  `secret_require:`, `env_provide:`, `port:`, `volume:`, `service:`, and `plan:`
+  blocks) and the embedded `qdrant-skill:` skill entity.
+- `.github/workflows/tag-on-merge.yml` — CalVer tag + `CHANGELOG/` on merge.
+- `README.md` — this user overview.
 
-```bash
-charly config qdrant
-charly start qdrant
-charly secrets get charly/api-key qdrant   # the generated admin key
-charly check run check-qdrant-pod                            # in the pod-qdrant repo
-```
+## Related
+
+- Owning skill: `/charly-qdrant:qdrant` (the candy's embedded skill entity)
+- CLI + `qdrant:` check verb: `/charly-qdrant:qdrant-cli` (in `plugin-qdrant`)
+- Box + R10 bed: `opencharly/pod-qdrant`
+- [`opencharly/charly`](https://github.com/opencharly/charly) — the charly CLI and image builder
+- [`opencharly/opencharly`](https://github.com/opencharly/opencharly) — the umbrella
