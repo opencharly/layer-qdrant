@@ -21,7 +21,7 @@ qdrant:
             aarch64 gnu build), so a single ${BUILD_ARCH} URL covers every
             supported platform with zero libc coupling.
         require:
-            - '@github.com/opencharly/layer-supervisord:v2026.240.0121'
+            - '@github.com/opencharly/layer-supervisord:v2026.271.1817'
         var:
             QDRANT_VERSION: v1.19.1
         env:
