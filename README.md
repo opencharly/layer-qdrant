@@ -35,9 +35,11 @@ my-qdrant-pod:
       - '@github.com/opencharly/plugin-qdrant/candy/plugin-qdrant:v2026.265.2042'
 ```
 
-The admin API key is auto-generated 32-byte hex on first deploy. Retrieve it
-with `charly secrets get charly/api-key qdrant`, or override it before first
-deploy with `charly secrets set charly/api-key qdrant <v>`. `/healthz`,
+The admin API key is generated on first deploy when no value is configured — 32
+random bytes as url-safe base64, 44 characters — and persisted at
+`charly/api-key qdrant`. Retrieve it with `charly secrets get charly/api-key qdrant`,
+or override it before first deploy with `charly secrets set charly/api-key qdrant <v>`
+(a pod deploy generates only with `--password=auto`). `/healthz`,
 `/livez`, and `/readyz` are always unauthenticated; `/collections`, `/telemetry`,
 and `/metrics` require the key.
 
